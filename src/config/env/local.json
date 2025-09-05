@@ -1,0 +1,66 @@
+{
+  "environment": "local",
+  "server": {
+    "port": 10000,
+    "host": "0.0.0.0",
+    "secretOrKey": "b2fdfa4747b58f069492edca327419031d85b487c5787e59077d8d0d33e25d34",
+    "session_secret": "b9b9e06867084e0ae9dba83cea2a0d12b13201905219489a6ee5d1abfa309529",
+    "api_versions": {
+      "v1": "/api/v1"
+    }
+  },
+  "database": {
+    "mongodb": {
+      "uri": "mongodb://localhost",
+      "port": 27017,
+      "dbname": "wiezel"
+    },
+    "mongodb_cluster": {
+      "uri": "mongodb+srv",
+      "dbName": "wiezel",
+      "options": {
+        "user": "test",
+        "pass": "xPw52ythM9xxRTx2"
+      },
+      "prefix_db": "@cluster0.hunac11.mongodb.net",
+      "suffix_db": "retryWrites=true&w=majority"
+    }
+  },
+  "graphDB": {
+    "neo4j": {
+      "uri": "bolt://0.0.0.0",
+      "port": "7687",
+      "options": {
+        "username": "neo4j",
+        "password": "test"
+      }
+    }
+  },
+  "cache": {
+    "redis": {
+      "host": "0.0.0.0",
+      "port": 6379
+    }
+  },
+  "cloudinary": {
+    "cloud_name": "malik96",
+    "api_key": "673611565238169",
+    "api_secret_key": "MpjqNPql5bGLsPyiO3vElyMHBqQ",
+    "environemnt": "CLOUDINARY_URL=cloudinary://673611565238169.MpjqNPql5bGLsPyiO3vElyMHBqQ@malik96"
+  },
+  "encryption": {
+    "hashing": {
+      "saltBytes": 16,
+      "iterations": 100000,
+      "keylen": 64,
+      "digest": "sha512"
+    },
+    "aes": {
+      "aes_key": "d43b58c599be722727750bb1fbdd1014528247c15e2717831f1d0dbffb42d91f",
+      "aes_iv": "819651742bb9c58655852f41fac9002d871fb792b94a7eaf",
+      "aes_algo": "aes-256-cbc",
+      "cipherEncoding": "base64",
+      "messageEncoding": "utf8"
+    }
+  }
+}

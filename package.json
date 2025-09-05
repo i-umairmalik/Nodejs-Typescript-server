@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon src/index.ts"
+    "dev": "nodemon src/index.ts --env=local"
   },
   "keywords": [],
   "author": "",
@@ -15,15 +15,18 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.0",
     "@types/mongoose": "^5.11.97",
+    "@types/nconf": "^0.10.7",
     "@types/node": "^22.8.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "awilix": "^12.0.5",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^4.21.1",
     "mongoose": "^8.7.3",
+    "nconf": "^0.13.0",
     "nodemon": "^3.1.7"
   }
 }
