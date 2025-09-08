@@ -2,29 +2,12 @@
 import pino, { Logger } from "pino";
 import pinoPretty from "pino-pretty";
 import path from "path";
+import { IAppLogger, ILogContext } from "../../interfaces/IAppLogger";
+import { IConfigProvider } from "../../interfaces/IConfigProvider";
 
-export interface LogContext {
-  userId?: string;
-  requestId?: string;
-  module?: string;
-  [key: string]: any;
-}
 
-export interface AppLogger {
-  info: (message: string, context?: LogContext) => void;
-  warn: (message: string, context?: LogContext) => void;
-  error: (message: string, error?: Error, context?: LogContext) => void;
-  debug: (message: string, context?: LogContext) => void;
-  logRequest: (method: string, url: string, context?: LogContext) => void;
-  logResponse: (
-    statusCode: number,
-    responseTime: number,
-    context?: LogContext
-  ) => void;
-}
-
-const createLogger = (config: any): AppLogger => {
-  const environment = config.get("server").environment;
+const createLogger = (config: IConfigProvider): IAppLogger => {
+  const environment = config.get("environment");
   const isProd = environment === "production";
 
   let logger: Logger;
@@ -67,28 +50,28 @@ const createLogger = (config: any): AppLogger => {
   }
 
   return {
-    info: (msg, ctx) => logger.info(ctx || {}, msg),
-    warn: (msg, ctx) => logger.warn(ctx || {}, msg),
-    debug: (msg, ctx) => logger.debug(ctx || {}, msg),
-    error: (msg, err, ctx) =>
+    info: (msg: string, ctx?: ILogContext) => logger.info(ctx || {}, msg),
+    warn: (msg: string, ctx?: ILogContext) => logger.warn(ctx || {}, msg),
+    debug: (msg: string, ctx?: ILogContext) => logger.debug(ctx || {}, msg),
+    error: (msg: string, err?: Error, ctx?: ILogContext) =>
       logger.error(
         {
-          ...ctx,
+          ...(ctx || {}),
           error: err
             ? { name: err.name, message: err.message, stack: err.stack }
             : undefined,
         },
         msg
       ),
-    logRequest: (method, url, ctx) =>
+    logRequest: (method: string, url: string, ctx?: ILogContext) =>
       logger.info(
-        { ...ctx, http: { method, url, type: "request" } },
+        { ...(ctx || {}), http: { method, url, type: "request" } },
         `➡️  ${method} ${url}`
       ),
-    logResponse: (statusCode, responseTime, ctx) => {
+    logResponse: (statusCode: number, responseTime: number, ctx?: ILogContext) => {
       const level = statusCode >= 400 ? "warn" : "info";
       logger[level](
-        { ...ctx, http: { statusCode, responseTime, type: "response" } },
+        { ...(ctx || {}), http: { statusCode, responseTime, type: "response" } },
         `⬅️  Response ${statusCode} (${responseTime}ms)`
       );
     },

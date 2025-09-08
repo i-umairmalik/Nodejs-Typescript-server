@@ -1,26 +1,39 @@
 import { createContainer, asFunction, asValue, InjectionMode } from "awilix";
-import { AppContainer } from "../types";
+import { IAppContainer } from "../interfaces/IAppContainer";
 import { createApp } from "../app";
 import config from "../config/config";
 import createLogger from "../config/logger/logger";
-import adapter from "../adapters";
-export const init = async () => {
-  const container = createContainer<AppContainer>({
-    injectionMode: InjectionMode.CLASSIC,
-  });
+import createAdapters from "../adapters";
 
-  const logger = createLogger(config);
-  const initAdapters = async (logger: any, config: any) =>
-    await adapter(logger, config);
+export const init = async (): Promise<void> => {
+  try {
+    const container = createContainer<IAppContainer>({
+      injectionMode: InjectionMode.CLASSIC,
+    });
 
-  const dbAdapters = await initAdapters(logger, config);
-  container.register({
-    logger: asValue(logger),
-    config: asValue(config),
-    mongoDB: asFunction(() => dbAdapters.db).singleton(),
-  });
+    // Initialize logger
+    const logger = createLogger(config);
 
-  createApp(container);
+    // Initialize all adapters
+    const adapters = await createAdapters(logger, config);
+
+    // Register dependencies in the container
+    container.register({
+      logger: asValue(logger),
+      config: asValue(config),
+      // adapters: asValue(adapters),
+      mongoDB: asFunction(() => adapters.db).singleton(),
+      redis: asFunction(() => adapters.cache?.secondary).singleton(),
+    });
+
+    logger.info("Dependency injection container initialized successfully");
+
+    // Create and start the application
+    createApp(container);
+  } catch (error) {
+    console.error("Failed to initialize application:", error);
+    process.exit(1);
+  }
 };
 
 export default init;
