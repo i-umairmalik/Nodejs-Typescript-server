@@ -1,4 +1,4 @@
-import { createContainer, asFunction, asValue, InjectionMode } from "awilix";
+import { createContainer, asFunction, asValue, InjectionMode, Lifetime } from "awilix";
 import { IAppContainer } from "../interfaces/IAppContainer";
 import { createApp } from "../app";
 import config from "../config/config";
@@ -8,7 +8,7 @@ import createAdapters from "../adapters";
 export const init = async (): Promise<void> => {
   try {
     const container = createContainer<IAppContainer>({
-      injectionMode: InjectionMode.CLASSIC,
+      injectionMode: InjectionMode.PROXY,
     });
 
     // Initialize logger
@@ -27,6 +27,30 @@ export const init = async (): Promise<void> => {
     });
 
     logger.info("Dependency injection container initialized successfully");
+
+    // Load modules approach - registers controllers, routes, services, etc. in the container
+    // Determine file extension based on whether we're running with ts-node or compiled JS
+    const isTypeScript = __filename.endsWith('.ts');
+    const fileExtension = isTypeScript ? 'ts' : 'js';
+
+    logger.info(`Loading modules with extension: .${fileExtension}`);
+
+    container.loadModules(
+      [
+        `../controllers/**/*.${fileExtension}`,
+        `../services/**/*.${fileExtension}`,
+        `../middlewares/**/*.${fileExtension}`,
+        // `../utils/**/*.${fileExtension}`, // Uncomment when you have utils
+      ],
+      {
+        cwd: __dirname,
+        formatName: "camelCase",
+        resolverOptions: {
+          lifetime: Lifetime.SINGLETON,
+          register: asFunction,
+        },
+      }
+    );
 
     // Create and start the application
     createApp(container);

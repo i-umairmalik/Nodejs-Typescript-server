@@ -4,7 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { AwilixContainer } from "awilix";
 import { IAppContainer } from "./interfaces/IAppContainer";
-
+import routes from "./routes";
 export const createApp = (container: AwilixContainer<IAppContainer>): void => {
   const { config, logger } = container.cradle;
   const app: Express = express();
@@ -18,13 +18,15 @@ export const createApp = (container: AwilixContainer<IAppContainer>): void => {
   const server = createServer(app);
   const PORT = config.get("server").port;
 
+  routes(container, app);
   try {
+
     server.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`, {
         port: PORT,
         environment: config.get("environment")
       });
-      logger.info(`API endpoints available at http://localhost:${PORT}/api`);
+      logger.info(`API endpoints available at http://localhost:${PORT}/api/v1`);
       logger.info(`Node.js Server Socket architecture loaded`);
     });
 
