@@ -4,7 +4,7 @@ import { createApp } from "../app";
 import config from "../config/config";
 import createLogger from "../config/logger/logger";
 import createAdapters from "../adapters";
-
+import * as helpers from "../helpers";
 export const init = async (): Promise<void> => {
   try {
     const container = createContainer<IAppContainer>({
@@ -14,21 +14,16 @@ export const init = async (): Promise<void> => {
     // Initialize logger
     const logger = createLogger(config);
 
-    // Initialize all adapters
-    const adapters = await createAdapters(logger, config);
-
-    // Register dependencies in the container
+    // Step 1: Register core dependencies first (logger, config, helpers)
     container.register({
       logger: asValue(logger),
       config: asValue(config),
-      // adapters: asValue(adapters),
-      mongoDB: asFunction(() => adapters.db).singleton(),
-      redis: asFunction(() => adapters.cache?.secondary).singleton(),
+      helpers: asValue(helpers),
     });
 
-    logger.info("Dependency injection container initialized successfully");
+    logger.info("Core dependencies registered in DI container");
 
-    // Load modules approach - registers controllers, routes, services, etc. in the container
+    // Step 2: Load modules - this allows schemas and interfaces to access helpers
     // Determine file extension based on whether we're running with ts-node or compiled JS
     const isTypeScript = __filename.endsWith('.ts');
     const fileExtension = isTypeScript ? 'ts' : 'js';
@@ -40,6 +35,9 @@ export const init = async (): Promise<void> => {
         `../controllers/**/*.${fileExtension}`,
         `../services/**/*.${fileExtension}`,
         `../middlewares/**/*.${fileExtension}`,
+        `../interfaces/**/*.${fileExtension}`,
+        `../schemas/**/*.${fileExtension}`,
+
         // `../utils/**/*.${fileExtension}`, // Uncomment when you have utils
       ],
       {
@@ -52,7 +50,22 @@ export const init = async (): Promise<void> => {
       }
     );
 
-    // Create and start the application
+    logger.info("All modules loaded successfully");
+
+    // Step 3: Now initialize adapters using container
+    const adapters = await createAdapters(container);
+
+    // Step 4: Register adapters in the container
+    container.register({
+      adapters: asValue(adapters),
+      mongoDB: asFunction(() => adapters.db.primary).singleton(),
+      redis: asFunction(() => adapters.cache?.secondary).singleton(),
+
+    });
+
+    logger.info("Dependency injection container initialized successfully");
+
+    // Step 5: Create and start the application
     createApp(container);
   } catch (error) {
     console.error("Failed to initialize application:", error);

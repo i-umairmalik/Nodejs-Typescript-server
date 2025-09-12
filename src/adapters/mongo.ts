@@ -1,24 +1,53 @@
 import mongoose, { Connection, ConnectOptions } from 'mongoose';
 import { IAppLogger } from '../interfaces/IAppLogger';
 import {
-  IMongoDBClusterConfig
+  IMongoDBClusterConfig,
+  IMongoDBConfig
 } from '../interfaces/IAppConfig';
 import { IConfigProvider } from '../interfaces/IConfigProvider';
+import { IAppContainer, IHelpers } from '../interfaces/IAppContainer';
+import { AwilixContainer } from 'awilix';
 /**
  * MongoDB adapter factory function
  * Creates and configures a MongoDB connection with enhanced security and monitoring
  */
-const createMongoAdapter = async (
-  logger: IAppLogger,
-  config: IConfigProvider
-): Promise<Connection> => {
+const createMongoAdapter = async (container: AwilixContainer<IAppContainer>): Promise<Connection> => {
+  const { config, logger, helpers } = container.cradle;
+  const { mongoose } = helpers;
   try {
-    const dbConfig: IMongoDBClusterConfig = config.get("database").mongodb_cluster;
+    // Get current environment
+    const environment = config.get("environment") || "local";
 
-    // Construct MongoDB connection URL
-    const dburl = `${dbConfig.uri}://${dbConfig.options.user}:${dbConfig.options.pass}${dbConfig.prefix_db}/${dbConfig.dbName}?${dbConfig.suffix_db}`;
+    let dburl: string;
+    let dbName: string;
 
-    // Enhanced connection options for production
+    // Check environment and connect accordingly
+    if (environment === "local") {
+      // Connect to local MongoDB
+      const localDbConfig: IMongoDBConfig = config.get("database").mongodb;
+      dbName = localDbConfig.dbname;
+      dburl = `${localDbConfig.uri}:${localDbConfig.port}/${localDbConfig.dbname}`;
+
+      logger.info("Connecting to local MongoDB", {
+        environment,
+        dbName: localDbConfig.dbname,
+        uri: localDbConfig.uri,
+        port: localDbConfig.port
+      });
+    } else {
+      // Connect to MongoDB cluster (for dev, staging, production, etc.)
+      const clusterDbConfig: IMongoDBClusterConfig = config.get("database").mongodb_cluster;
+      dbName = clusterDbConfig.dbName;
+      dburl = `${clusterDbConfig.uri}://${clusterDbConfig.options.user}:${clusterDbConfig.options.pass}${clusterDbConfig.prefix_db}/${clusterDbConfig.dbName}?${clusterDbConfig.suffix_db}`;
+
+      logger.info("Connecting to MongoDB cluster", {
+        environment,
+        dbName: clusterDbConfig.dbName,
+        uri: clusterDbConfig.uri
+      });
+    }
+
+    // Enhanced connection options
     const connectionOptions: ConnectOptions = {
       maxPoolSize: 10, // Maintain up to 10 socket connections
       serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
@@ -32,39 +61,45 @@ const createMongoAdapter = async (
 
     // MongoDB connection event handlers with proper logging - MUST be set before connecting
     mongoose.connection.on("connected", () => {
-      logger.info("MongoDB connected successfully with enhanced security", {
-        dbName: dbConfig.dbName,
+      logger.info("MongoDB connected successfully", {
+        environment,
+        dbName,
         readyState: mongoose.connection.readyState
       });
     });
 
     mongoose.connection.on("error", (err: Error) => {
       logger.error("MongoDB connection error", err, {
-        dbName: dbConfig.dbName
+        environment,
+        dbName
       });
     });
 
     mongoose.connection.on("disconnected", () => {
       logger.warn("MongoDB disconnected", {
-        dbName: dbConfig.dbName
+        environment,
+        dbName
       });
     });
 
     mongoose.connection.on("reconnected", () => {
       logger.info("MongoDB reconnected", {
-        dbName: dbConfig.dbName
+        environment,
+        dbName
       });
     });
 
     mongoose.connection.on("close", () => {
       logger.info("MongoDB connection closed", {
-        dbName: dbConfig.dbName
+        environment,
+        dbName
       });
     });
 
     logger.info("Attempting to connect to MongoDB", {
-      dbName: dbConfig.dbName,
-      uri: dbConfig.uri
+      environment,
+      dbName,
+      connectionType: environment === "local" ? "local" : "cluster"
     });
 
     await mongoose.connect(dburl, connectionOptions);

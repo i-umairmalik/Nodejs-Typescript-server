@@ -1,7 +1,5 @@
-import { IAppLogger } from '../interfaces/IAppLogger';
-
-import { IConfigProvider } from '../interfaces/IConfigProvider';
-import { IAdapters } from '../interfaces/IAdapters';
+import { AwilixContainer } from 'awilix';
+import { IAppContainer } from '../interfaces/IAppContainer';
 import createMongoAdapter from './mongo';
 
 // Import other adapters when they are implemented
@@ -12,21 +10,22 @@ import { createRedisConnection } from './redis';
 
 /**
  * Adapter factory function that initializes and returns all configured adapters
- * @param logger - Application logger instance
- * @param config - Configuration provider instance
+ * Uses dependency injection container to get all dependencies
+ * @param container - Awilix container with all dependencies
  * @returns Promise resolving to configured adapters object
  */
 const createAdapters = async (
-  logger: IAppLogger,
-  config: IConfigProvider
-): Promise<IAdapters> => {
+  container: AwilixContainer<IAppContainer>
+) => {
+  const { logger, config } = container.cradle;
+
   try {
     logger.info("Initializing application adapters");
 
-    const adapters: IAdapters = {
+    const adapters = {
       // Database adapter - MongoDB (primary)
       db: {
-        primary: await createMongoAdapter(logger, config),
+        primary: await createMongoAdapter(container),
       },
 
       cache: {
