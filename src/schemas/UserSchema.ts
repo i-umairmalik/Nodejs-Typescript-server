@@ -1,13 +1,8 @@
 // Import required types for dependency injection
-import { AwilixContainer } from "awilix";
-import { IAppContainer } from "../interfaces/IAppContainer";
+import { Interfaces } from "../interfaces";
 
 // UserSchema using dependency injection pattern
-export default (container: AwilixContainer<IAppContainer>) => {
-    const { helpers, iUserInterface, logger } = container.cradle;
-    logger.info("UserSchema initialized", { container, logger, helpers, iUserInterface });
-    console.log("iUserInterface", iUserInterface);
-    console.log("iUserInterface", container.cradle);
+export default ({ helpers }: { helpers: Interfaces.Helpers }) => {
     const { mongoose } = helpers;
 
     // Define the schema using mongoose from hel`pers with proper typing
@@ -73,8 +68,8 @@ export default (container: AwilixContainer<IAppContainer>) => {
         },
         status: {
             type: String,
-            enum: Object.values(iUserInterface.UserStatus),
-            default: iUserInterface.UserStatus.DEACTIVE,
+            enum: Object.values(Interfaces.User.UserStatus),
+            default: Interfaces.User.UserStatus.DEACTIVE,
         },
         // roles_permissions: { type: mongoose.Schema.Types.Mixed }, // add role_permission id here to define the role_permission of routes here
         dtu: { type: Date },
@@ -87,8 +82,8 @@ export default (container: AwilixContainer<IAppContainer>) => {
             address: { type: String },
             gender: {
                 type: String,
-                enum: Object.values(iUserInterface.Gender),
-                default: iUserInterface.Gender.MALE,
+                enum: Object.values(Interfaces.User.Gender),
+                default: Interfaces.User.Gender.MALE,
             },
             phone: { type: String, unique: true, sparse: true },
         },

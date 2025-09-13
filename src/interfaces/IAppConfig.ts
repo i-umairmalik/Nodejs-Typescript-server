@@ -1,3 +1,4 @@
+import { IEncryptionConfig } from "./Encryption";
 export interface IMongoDBConfig {
     uri: string;
     port: number;
@@ -41,21 +42,7 @@ export interface ICloudinaryConfig {
     environemnt: string;
 }
 
-export interface IEncryptionConfig {
-    hashing: {
-        saltBytes: number;
-        iterations: number;
-        keylen: number;
-        digest: string;
-    };
-    aes: {
-        aes_key: string;
-        aes_iv: string;
-        aes_algo: string;
-        cipherEncoding: string;
-        messageEncoding: string;
-    };
-}
+
 
 export interface IServerConfig {
     port: number;

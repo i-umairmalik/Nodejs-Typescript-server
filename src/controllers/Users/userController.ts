@@ -1,16 +1,57 @@
 import { Request, Response } from "express";
-import { IAppLogger } from "../../interfaces/IAppLogger";
+import { Interfaces } from "../../interfaces";
+import { IPluginsHelper } from "../../plugins";
 
 // User controller structured as a function for Awilix DI
-const userController = ({ logger, userService }: { logger: IAppLogger; userService: any }) => {
+const userController = ({ logger, helpers, userService, pluginsHelper, encryptionService }: {
+    logger: Interfaces.AppLogger;
+    helpers: Interfaces.Helpers;
+    userService: Interfaces.User.IUserService;
+    pluginsHelper: IPluginsHelper;
+    encryptionService: Interfaces.EncryptionService;
+}): Interfaces.User.IUserController => {
+    const { Joi, Boom, _, decorateErrorResponse } = helpers;
     logger.info("User controller initialized");
+
+    // Helper function for validation
+    const validateRequest = async (pluginType: string, data: any, options: { type?: string } = {}) => {
+        try {
+            logger.info("Validating request:", { pluginType, data, options });
+            const { schema, data: decoratedData } = await pluginsHelper.pluginsType(pluginType, data, options);
+
+            const { error, value } = schema.validate(decoratedData, {
+                abortEarly: false,
+                allowUnknown: false,
+                stripUnknown: true,
+            });
+
+            return {
+                isValid: !error,
+                error,
+                validatedData: value,
+                errorResponse: error ? {
+                    error: "Validation failed",
+                    details: error.details.map(detail => ({
+                        field: detail.path.join('.'),
+                        message: detail.message,
+                        value: detail.context?.value,
+                    })),
+                } : null
+            };
+        } catch (error) {
+            logger.error("Error in validation helper:", error as Error);
+            throw error;
+        }
+    };
 
     return {
         getAllUsers: async (req: Request, res: Response) => {
             try {
                 logger.info("GET /users - Getting all users");
-                const users = await userService.getAllUsers();
-                res.json({ users });
+                const page = parseInt(req.query.page as string) || 1;
+                const limit = parseInt(req.query.limit as string) || 10;
+                const result = await userService.getAllUsers(page, limit);
+                res.json(result);
             } catch (error) {
                 logger.error("Error getting users:", error as Error);
                 res.status(500).json({ error: "Internal server error" });
@@ -37,11 +78,38 @@ const userController = ({ logger, userService }: { logger: IAppLogger; userServi
         createUser: async (req: Request, res: Response) => {
             try {
                 logger.info("POST /users - Creating new user");
-                const user = await userService.createUser(req.body);
+                logger.info("Request body:", req.body);
+
+                // Validate request body using the signup plugin
+                const validation = await validateRequest("Users", req.body, { type: "signup" });
+                logger.info("Validation:", validation);
+                // Return validation errors if any
+                if (!validation.isValid) {
+                    logger.error("validation error occurs", validation.error);
+                    throw Boom.badData(validation.error);
+                }
+
+                logger.info("Validated data:", validation.validatedData);
+
+                const checkExistingUser = await userService.getUserByEmail(validation.validatedData.email);
+                logger.info("Check existing user:", { checkExistingUser });
+                if (checkExistingUser) {
+                    logger.error("User already exits");
+                    throw Boom.badRequest("User already exits");
+                }
+
+                const { salt, hash } = encryptionService.hashPassword(validation.validatedData.password);
+                logger.info("Hashed password:", { salt, hash });
+                validation.validatedData.salt = salt;
+                validation.validatedData.password = hash;
+                // Use the validated and decorated data to create the user
+                const user = await userService.createUser({ ...validation.validatedData, salt, hash });
+
                 res.status(201).json({ user });
             } catch (error) {
                 logger.error("Error creating user:", error as Error);
-                res.status(500).json({ error: "Internal server error" });
+                const { _code, _payload } = decorateErrorResponse(error);
+                res.status(_code).json(_payload);
             }
         },
 
@@ -49,10 +117,32 @@ const userController = ({ logger, userService }: { logger: IAppLogger; userServi
             try {
                 const { id } = req.params;
                 logger.info(`PUT /users/${id} - Updating user`);
-                const user = await userService.updateUser(id, req.body);
+
+                // Validate request body using the update plugin
+                const validation = await validateRequest("Users", req.body, { type: "update" });
+
+                // Return validation errors if any
+                if (!validation.isValid) {
+                    logger.error("Validation error occurred:", validation.error);
+                    return res.status(400).json(validation.errorResponse);
+                }
+
+                // Use the validated and decorated data to update the user
+                const user = await userService.updateUser(id, validation.validatedData);
+
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+
                 res.json({ user });
             } catch (error) {
                 logger.error("Error updating user:", error as Error);
+
+                // Handle specific plugin errors
+                if (error instanceof Error && error.message.includes('Plugin')) {
+                    return res.status(400).json({ error: error.message });
+                }
+
                 res.status(500).json({ error: "Internal server error" });
             }
         },

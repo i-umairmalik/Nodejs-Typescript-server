@@ -5,6 +5,7 @@ import config from "../config/config";
 import createLogger from "../config/logger/logger";
 import createAdapters from "../adapters";
 import * as helpers from "../helpers";
+import { PluginsHelper } from "../plugins";
 export const init = async (): Promise<void> => {
   try {
     const container = createContainer<IAppContainer>({
@@ -19,6 +20,7 @@ export const init = async (): Promise<void> => {
       logger: asValue(logger),
       config: asValue(config),
       helpers: asValue(helpers),
+      pluginsHelper: asFunction(() => new PluginsHelper()).singleton(),
     });
 
     logger.info("Core dependencies registered in DI container");
@@ -32,11 +34,16 @@ export const init = async (): Promise<void> => {
 
     container.loadModules(
       [
+        `../schemas/**/*.${fileExtension}`,
         `../controllers/**/*.${fileExtension}`,
         `../services/**/*.${fileExtension}`,
         `../middlewares/**/*.${fileExtension}`,
-        `../interfaces/**/*.${fileExtension}`,
-        `../schemas/**/*.${fileExtension}`,
+        `../repositories/**/*.${fileExtension}`,
+        `../plugins/**/*.${fileExtension}`,
+
+
+        // Note: Interfaces are TypeScript compile-time constructs and don't need to be loaded in DI
+        // They should be imported directly where needed using: import { Interfaces } from '../interfaces'
 
         // `../utils/**/*.${fileExtension}`, // Uncomment when you have utils
       ],

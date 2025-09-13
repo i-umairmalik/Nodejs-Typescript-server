@@ -18,6 +18,7 @@ export interface IHelpers {
     mime: any;
     path: any;
     moment: any;
+    decorateErrorResponse: any;
 }
 
 export interface IAppContainer {
@@ -28,6 +29,10 @@ export interface IAppContainer {
     adapters?: IAdapters;
     mongoDB?: mongoose.Connection;
     redis?: RedisClientType;
+
+    // Repositories (manually registered)
+    userRepository?: import('./index').Interfaces.User.IUserRepository;
+
     // Controllers (auto-registered via loadModules)
     healthController?: any;
 
@@ -35,5 +40,7 @@ export interface IAppContainer {
     healthRoutes?: Router;
 
     // Services (auto-registered via loadModules)
+    userService?: import('./index').Interfaces.User.IUserService;
+
     [key: string]: any; // Allow dynamic registration of modules
 }
