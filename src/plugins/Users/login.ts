@@ -1,13 +1,8 @@
 import _ from 'lodash';
 import Joi from '../joi-config';
-import * as JoiTypes from 'joi';
+import { ILoginPlugin } from '../../interfaces/Plugins';
 
-export interface ILoginPlugin {
-    schema(): JoiTypes.ObjectSchema;
-    decorate(value: any): any;
-}
-
-export const schema = (): JoiTypes.ObjectSchema => {
+export const schema = () => {
     return Joi.object().keys({
         email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net', 'org'] } }).required(),
         password: Joi.string().min(8).max(30).required(),

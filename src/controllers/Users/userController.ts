@@ -1,13 +1,12 @@
 import { Request, Response } from "express";
 import { Interfaces } from "../../interfaces";
-import { IPluginsHelper } from "../../plugins";
 
 // User controller structured as a function for Awilix DI
 const userController = ({ logger, helpers, userService, pluginsHelper, encryptionService }: {
     logger: Interfaces.AppLogger;
     helpers: Interfaces.Helpers;
     userService: Interfaces.User.IUserService;
-    pluginsHelper: IPluginsHelper;
+    pluginsHelper: Interfaces.PluginsHelper;
     encryptionService: Interfaces.EncryptionService;
 }): Interfaces.User.IUserController => {
     const { Joi, Boom, _, decorateErrorResponse } = helpers;
@@ -31,7 +30,7 @@ const userController = ({ logger, helpers, userService, pluginsHelper, encryptio
                 validatedData: value,
                 errorResponse: error ? {
                     error: "Validation failed",
-                    details: error.details.map(detail => ({
+                    details: error.details.map((detail: any) => ({
                         field: detail.path.join('.'),
                         message: detail.message,
                         value: detail.context?.value,
@@ -65,7 +64,8 @@ const userController = ({ logger, helpers, userService, pluginsHelper, encryptio
                 const user = await userService.getUserById(id);
 
                 if (!user) {
-                    return res.status(404).json({ error: "User not found" });
+                    res.status(404).json({ error: "User not found" });
+                    return;
                 }
 
                 res.json({ user });
@@ -104,8 +104,8 @@ const userController = ({ logger, helpers, userService, pluginsHelper, encryptio
                 validation.validatedData.password = hash;
                 // Use the validated and decorated data to create the user
                 const user = await userService.createUser({ ...validation.validatedData, salt, hash });
-
-                res.status(201).json({ user });
+                logger.info("User created:", { user });
+                res.status(200).json({ data: { ...user }, message: "User created successfully" });
             } catch (error) {
                 logger.error("Error creating user:", error as Error);
                 const { _code, _payload } = decorateErrorResponse(error);
@@ -124,14 +124,16 @@ const userController = ({ logger, helpers, userService, pluginsHelper, encryptio
                 // Return validation errors if any
                 if (!validation.isValid) {
                     logger.error("Validation error occurred:", validation.error);
-                    return res.status(400).json(validation.errorResponse);
+                    res.status(400).json(validation.errorResponse);
+                    return;
                 }
 
                 // Use the validated and decorated data to update the user
                 const user = await userService.updateUser(id, validation.validatedData);
 
                 if (!user) {
-                    return res.status(404).json({ error: "User not found" });
+                    res.status(404).json({ error: "User not found" });
+                    return;
                 }
 
                 res.json({ user });
@@ -140,7 +142,8 @@ const userController = ({ logger, helpers, userService, pluginsHelper, encryptio
 
                 // Handle specific plugin errors
                 if (error instanceof Error && error.message.includes('Plugin')) {
-                    return res.status(400).json({ error: error.message });
+                    res.status(400).json({ error: error.message });
+                    return;
                 }
 
                 res.status(500).json({ error: "Internal server error" });

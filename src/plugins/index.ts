@@ -2,21 +2,7 @@ import _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
 import Joi from './joi-config';
-import * as JoiTypes from 'joi';
-
-export interface IPlugin {
-    schema(): JoiTypes.ObjectSchema;
-    decorate(value: any): any;
-}
-
-export interface IPluginCollection {
-    [key: string]: IPlugin | IPluginCollection;
-}
-
-export interface IPluginValidationResult {
-    schema: JoiTypes.ObjectSchema;
-    data: any;
-}
+import { IPlugin, IPluginCollection, IPluginValidationResult, IPluginsHelper } from '../interfaces/Plugins';
 
 const loadPlugins = (pluginsDirectory: string): IPluginCollection => {
     const dirItems = fs.readdirSync(pluginsDirectory, 'utf-8');
@@ -65,9 +51,6 @@ const loadPlugins = (pluginsDirectory: string): IPluginCollection => {
     return plugins;
 };
 
-export interface IPluginsHelper {
-    pluginsType(type: string, data: any, options?: { type?: string }): Promise<IPluginValidationResult>;
-}
 
 class PluginsHelper implements IPluginsHelper {
     private plugins: { pluginsType: IPluginCollection };

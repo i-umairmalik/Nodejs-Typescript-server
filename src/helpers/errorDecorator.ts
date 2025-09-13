@@ -1,43 +1,13 @@
 import * as _ from 'lodash';
 import * as Boom from '@hapi/boom';
+import { IJoiError, IBoomError, IErrorResponse } from '../interfaces/Helpers';
 
-interface JoiError {
-    isJoi: boolean;
-    details: Array<{
-        message: string;
-        type: string;
-        path: string[];
-        context?: any;
-    }>;
-}
-
-interface BoomError {
-    isBoom: boolean;
-    output: {
-        statusCode: number;
-        payload: any;
-    };
-    data?: any;
-    message: string;
-}
-
-interface ErrorResponse {
-    _code: number;
-    _payload: {
-        message: string;
-        success: boolean;
-        code?: number;
-        details?: any;
-        data?: any;
-    };
-}
-
-export const decorateErrorResponse = (error: any): ErrorResponse => {
+export const decorateErrorResponse = (error: any): IErrorResponse => {
     console.log('Error', error);
 
     // if "joi" error object
     if (error && error.isJoi) {
-        const joiError = error as JoiError;
+        const joiError = error as IJoiError;
         const JoiErrorResponse = {
             status: 'failed',
             // fetch only message and type from each error
@@ -51,7 +21,7 @@ export const decorateErrorResponse = (error: any): ErrorResponse => {
 
     // if "boom" error object
     if (error && error.isBoom) {
-        const boomError = error as BoomError;
+        const boomError = error as IBoomError;
         const _code = _.get(boomError, 'output.statusCode', 500);
         const _payload = Object.assign(
             boomError.output.payload,

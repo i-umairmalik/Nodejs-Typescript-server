@@ -1,13 +1,8 @@
 import _ from 'lodash';
 import Joi from '../joi-config';
-import * as JoiTypes from 'joi';
+import { IUpdatePlugin } from '../../interfaces/Plugins';
 
-export interface IUpdatePlugin {
-    schema(): JoiTypes.ObjectSchema;
-    decorate(value: any): any;
-}
-
-export const schema = (): JoiTypes.ObjectSchema => {
+export const schema = () => {
     return Joi.object().keys({
         username: Joi.string().optional(),
         email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net', 'org'] } }).optional(),
