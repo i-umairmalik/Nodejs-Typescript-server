@@ -9,6 +9,7 @@ const healthRoutes = (container: AwilixContainer<IAppContainer>) => {
 
     // Public routes (no authentication required)
     router.get("/", healthController.checkHealth);
+    router.get("/db", healthController.getDatabaseStats);
 
     return router;
 };

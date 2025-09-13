@@ -30,22 +30,36 @@ export const createApp = (container: AwilixContainer<IAppContainer>): void => {
       logger.info(`Node.js Server Socket architecture loaded`);
     });
 
-    // Graceful shutdown handling
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM received, shutting down gracefully');
-      server.close(() => {
-        logger.info('Process terminated');
-        process.exit(0);
-      });
-    });
+    // Graceful shutdown handling with database cleanup
+    const gracefulShutdown = async (signal: string) => {
+      logger.info(`${signal} received, shutting down gracefully`);
 
-    process.on('SIGINT', () => {
-      logger.info('SIGINT received, shutting down gracefully');
-      server.close(() => {
-        logger.info('Process terminated');
-        process.exit(0);
+      server.close(async () => {
+        try {
+          // Close MongoDB connection
+          const { adapters } = container.cradle;
+          if (adapters?.db?.primary) {
+            await adapters.db.primary.close();
+            logger.info('MongoDB connection closed successfully');
+          }
+
+          // Close Redis connection if exists
+          if (adapters?.cache?.secondary) {
+            await adapters.cache.secondary.quit();
+            logger.info('Redis connection closed successfully');
+          }
+
+          logger.info('All connections closed, process terminated');
+          process.exit(0);
+        } catch (error) {
+          logger.error('Error during graceful shutdown', error as Error);
+          process.exit(1);
+        }
       });
-    });
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
   } catch (error) {
     logger.error("Failed to start application", error as Error);

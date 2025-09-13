@@ -47,16 +47,28 @@ const createMongoAdapter = async (container: AwilixContainer<IAppContainer>): Pr
       });
     }
 
-    // Enhanced connection options
+    // Enhanced connection options optimized for high load
     const connectionOptions: ConnectOptions = {
-      maxPoolSize: 10, // Maintain up to 10 socket connections
+      // Connection Pool Settings
+      maxPoolSize: environment === "production" ? 20 : 10, // Scale based on environment
+      minPoolSize: environment === "production" ? 5 : 2,   // Maintain minimum connections
+      maxIdleTimeMS: 30000, // Close connections after 30s of inactivity
+
+      // Timeout Settings
       serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
+
+      // Network & Performance
       family: 4, // Use IPv4, skip trying IPv6
       retryWrites: true,
       w: "majority", // Write concern
-      readPreference: "primary",
+      readPreference: "primary", // Primary read preference (maxStalenessSeconds not compatible)
       compressors: ["zlib"], // Enable compression
+
+      // Monitoring & Health
+      heartbeatFrequencyMS: 10000, // Check server health every 10s
+      // Note: maxStalenessSeconds only works with secondary read preferences
     };
 
     // MongoDB connection event handlers with proper logging - MUST be set before connecting
@@ -96,13 +108,37 @@ const createMongoAdapter = async (container: AwilixContainer<IAppContainer>): Pr
       });
     });
 
+    // Additional monitoring for production environments
+    if (environment !== "local") {
+      mongoose.connection.on("fullsetup", () => {
+        logger.info("MongoDB replica set fully connected", { environment, dbName });
+      });
+
+      mongoose.connection.on("all", () => {
+        logger.info("MongoDB connected to all servers", { environment, dbName });
+      });
+    }
+
     logger.info("Attempting to connect to MongoDB", {
       environment,
       dbName,
-      connectionType: environment === "local" ? "local" : "cluster"
+      connectionType: environment === "local" ? "local" : "cluster",
+      poolSettings: {
+        maxPoolSize: connectionOptions.maxPoolSize,
+        minPoolSize: connectionOptions.minPoolSize
+      }
     });
 
     await mongoose.connect(dburl, connectionOptions);
+
+    // Log connection pool statistics
+    logger.info("MongoDB connection established", {
+      environment,
+      dbName,
+      readyState: mongoose.connection.readyState,
+      host: mongoose.connection.host,
+      port: mongoose.connection.port
+    });
 
     return mongoose.connection;
   } catch (error) {

@@ -6,6 +6,7 @@ import createLogger from "../config/logger/logger";
 import createAdapters from "../adapters";
 import * as helpers from "../helpers";
 import { PluginsHelper } from "../plugins";
+import DatabaseMonitor from "../utils/dbMonitor";
 export const init = async (): Promise<void> => {
   try {
     const container = createContainer<IAppContainer>({
@@ -67,7 +68,7 @@ export const init = async (): Promise<void> => {
       adapters: asValue(adapters),
       mongoDB: asFunction(() => adapters.db.primary).singleton(),
       redis: asFunction(() => adapters.cache?.secondary).singleton(),
-
+      dbMonitor: asFunction(({ logger }) => new DatabaseMonitor(logger)).singleton(),
     });
 
     logger.info("Dependency injection container initialized successfully");
