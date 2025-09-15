@@ -134,6 +134,7 @@ export namespace App {
             createUser: (req: Request, res: Response) => Promise<void | UserResponse>;
             updateUser: (req: Request, res: Response) => Promise<void | UserResponse>;
             deleteUser: (req: Request, res: Response) => Promise<void | Response>;
+            loginUser: (req: Request, res: Response) => Promise<void | UserResponse>;
         }
     }
 }

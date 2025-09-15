@@ -8,6 +8,7 @@ import * as crypto from 'crypto';
 import * as mime from 'mime-types';
 import * as path from 'path';
 import { decorateErrorResponse } from './errorDecorator';
+import validateRequest from './RequestPluginValidator';
 // Extend joi with objectId validator - proper initialization for joi-objectid v4
 let Joi: any;
 try {
@@ -35,5 +36,6 @@ export {
     crypto,
     mime,
     path,
-    decorateErrorResponse
+    decorateErrorResponse,
+    validateRequest
 };

@@ -16,6 +16,8 @@ const userRoutes = (container: AwilixContainer<IAppContainer>) => {
     router.put("/:id", authMiddleware.authenticate, userController.updateUser);
     router.delete("/:id", authMiddleware.authenticate, userController.deleteUser);
 
+    router.post("/login", userController.loginUser);
+
     return router;
 };
 

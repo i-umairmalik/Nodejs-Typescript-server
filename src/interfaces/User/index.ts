@@ -58,7 +58,8 @@ export interface IUser {
     x_access_token?: string;
     last_login?: Date;
     is_login?: boolean;
-    device?: string;
+    current_device?: string;
+    devices?: string[];
     city?: mongoose.Types.ObjectId;
     status?: UserStatus;
     dtu?: Date;

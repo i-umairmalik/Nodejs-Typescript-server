@@ -19,6 +19,7 @@ export interface IHelpers {
     path: any;
     moment: any;
     decorateErrorResponse: any;
+    validateRequest: any;
 }
 
 export interface IAppContainer {

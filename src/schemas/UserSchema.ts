@@ -60,7 +60,8 @@ export default ({ helpers }: { helpers: Interfaces.Helpers }) => {
         x_access_token: { type: String },
         last_login: { type: Date, index: true },
         is_login: { type: Boolean, index: true },
-        device: { type: String },
+        current_device: { type: String },
+        devices: { type: [String] },
         city: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "cities",
@@ -90,7 +91,7 @@ export default ({ helpers }: { helpers: Interfaces.Helpers }) => {
     });
 
     // Create and return the model using mongoose from helpers with proper typing
-    const User = mongoose.model("users", userSchema);
+    const User = mongoose.model<Interfaces.User.IUserDocument>("users", userSchema);
 
     return { User };
 };

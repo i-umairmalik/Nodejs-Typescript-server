@@ -9,39 +9,8 @@ const userController = ({ logger, helpers, userService, pluginsHelper, encryptio
     pluginsHelper: Interfaces.PluginsHelper;
     encryptionService: Interfaces.EncryptionService;
 }): Interfaces.User.IUserController => {
-    const { Joi, Boom, _, decorateErrorResponse } = helpers;
+    const { Joi, Boom, _, decorateErrorResponse, validateRequest } = helpers;
     logger.info("User controller initialized");
-
-    // Helper function for validation
-    const validateRequest = async (pluginType: string, data: any, options: { type?: string } = {}) => {
-        try {
-            logger.info("Validating request:", { pluginType, data, options });
-            const { schema, data: decoratedData } = await pluginsHelper.pluginsType(pluginType, data, options);
-
-            const { error, value } = schema.validate(decoratedData, {
-                abortEarly: false,
-                allowUnknown: false,
-                stripUnknown: true,
-            });
-
-            return {
-                isValid: !error,
-                error,
-                validatedData: value,
-                errorResponse: error ? {
-                    error: "Validation failed",
-                    details: error.details.map((detail: any) => ({
-                        field: detail.path.join('.'),
-                        message: detail.message,
-                        value: detail.context?.value,
-                    })),
-                } : null
-            };
-        } catch (error) {
-            logger.error("Error in validation helper:", error as Error);
-            throw error;
-        }
-    };
 
     return {
         getAllUsers: async (req: Request, res: Response) => {
@@ -102,12 +71,39 @@ const userController = ({ logger, helpers, userService, pluginsHelper, encryptio
                 logger.info("Hashed password:", { salt, hash });
                 validation.validatedData.salt = salt;
                 validation.validatedData.password = hash;
+                validation.validatedData.current_device = req.headers["x-device-type"] as string;
+                validation.validatedData.devices = [req.headers["x-device-type"] as string];
                 // Use the validated and decorated data to create the user
                 const user = await userService.createUser({ ...validation.validatedData, salt, hash });
                 logger.info("User created:", { user });
                 res.status(200).json({ data: { ...user }, message: "User created successfully" });
             } catch (error) {
                 logger.error("Error creating user:", error as Error);
+                const { _code, _payload } = decorateErrorResponse(error);
+                res.status(_code).json(_payload);
+            }
+        },
+
+        loginUser: async (req: Request, res: Response) => {
+            try {
+                logger.info("POST /users/login - Logging in user");
+                logger.info("Request body:", req.body);
+
+                const validation = await validateRequest("Users", req.body, { type: "login" });
+                logger.info("Validation:", validation);
+
+                if (!validation.isValid) {
+                    logger.error("Validation error occurred:", validation.error);
+                    throw Boom.badData(validation.error);
+                    return;
+                }
+
+                // const user = await userService.loginUser(validation.validatedData);
+                // logger.info("User logged in:", { user });
+                // res.status(200).json({ data: { ...user }, message: "User logged in successfully" });
+
+            } catch (error) {
+                logger.error("Error logging in user:", error as Error);
                 const { _code, _payload } = decorateErrorResponse(error);
                 res.status(_code).json(_payload);
             }
