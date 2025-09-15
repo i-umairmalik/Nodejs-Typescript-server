@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts --env=dev",
-    "dev:local": "nodemon src/index.ts --env=local"
+    "local": "nodemon src/index.ts --env=local"
   },
   "keywords": [],
   "author": "",

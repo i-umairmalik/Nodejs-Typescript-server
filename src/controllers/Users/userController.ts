@@ -95,13 +95,36 @@ const userController = ({ logger, helpers, userService, pluginsHelper, encryptio
                 if (!validation.isValid) {
                     logger.error("Validation error occurred:", validation.error);
                     throw Boom.badData(validation.error);
-                    return;
                 }
 
-                // const user = await userService.loginUser(validation.validatedData);
-                // logger.info("User logged in:", { user });
-                // res.status(200).json({ data: { ...user }, message: "User logged in successfully" });
 
+                const checkExistingUser = await userService.getUserByEmail(validation.validatedData.email);
+
+                logger.info(`User is found with this email`, {checkExistingUser})
+
+                if(!checkExistingUser){
+                    logger.error(`User is not found with this email`, validation.validatedData.email)
+                    throw Boom.badData(`User id not found with this email ${validation.validatedData.email}`);
+                }
+
+                // check if the user is already registered first
+                if(checkExistingUser.is_deleted || checkExistingUser.is_blocked){
+                    return Boom.badRequest(`User is ${checkExistingUser.is_deleted} ? "deleted": "blocked contact admin"`)
+                }
+
+                // const compare_password = await encryptionService.compare_password(
+                //     checkExistingUser.password,
+                //     validation.validatedData.password,
+                //     checkExistingUser.salt
+                // )
+
+                // check if the user is already registered and if the user is not blocked or deleted
+                // now matched the password of the user database and inputed password
+                // if all goes well then assign the token to the user
+                // update the user in database with the token 
+                // store the login user in the redis cache
+                // return the login user
+                
             } catch (error) {
                 logger.error("Error logging in user:", error as Error);
                 const { _code, _payload } = decorateErrorResponse(error);

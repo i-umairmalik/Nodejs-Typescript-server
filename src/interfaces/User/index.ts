@@ -92,7 +92,7 @@ export interface IUserQuery {
 }
 
 // User response interfaces (for API responses)
-export interface IUserResponse extends Omit<IUser, 'password' | 'salt' | 'password_reset_token'> {
+export interface IUserResponse extends Omit<IUser, 'password_reset_token'> {
     _id: string;
 }
 

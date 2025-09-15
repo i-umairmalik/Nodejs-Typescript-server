@@ -17,9 +17,9 @@ const userRepository = ({ mongoDB, userSchema, logger }: { mongoDB: mongoose.Con
         return await User.findById(id);
     };
 
-    const findByEmail = async (email: string): Promise<Interfaces.User.IUserDocument | null> => {
+    const findByEmail =  (email: string): Promise<Interfaces.User.IUserDocument | null> => {
         logger.info(`Finding user by email In Repository: ${email}`);
-        return await User.findOne({ email });
+        return  User.findOne({ email });
     };
 
     const findAll = async (page: number = 1, limit: number = 10): Promise<Interfaces.User.IUserDocument[]> => {

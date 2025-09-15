@@ -26,6 +26,8 @@ const convertToUserResponse = (user: Interfaces.User.IUserDocument): Interfaces.
     followers: user.followers,
     followings: user.followings,
     ip: user.ip,
+    password: user.password,
+    salt: user.salt
     // Exclude sensitive fields: password, salt, password_reset_token, etc.
 });
 
